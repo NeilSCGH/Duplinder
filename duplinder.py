@@ -1,5 +1,7 @@
 import sys, os, json
 from core import *
+import hashlib
+
 
 class program():
     def __init__(self,args):
@@ -26,6 +28,13 @@ class program():
           self.destinationFolderPath = self.sourceFolderPath + "/_DUPLICATES"
         os.makedirs(self.destinationFolderPath, 0o777, exist_ok = True)
 
+    def md5(self, fname):
+        fname = fname.replace("\\","/")
+        hash_md5 = hashlib.md5()
+        with open(fname, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
 
     def run(self):
         valid=0
@@ -36,10 +45,12 @@ class program():
             path=os.path.join(self.sourceFolderPath,element)
             
             if os.path.isfile(path): #is a file
-                try: #move it
-                    print(path)
-                    #self.move(self.sourceFolderPath, element)
-                    valid += 1
+                #try: #move it
+                fileHash = self.md5(path)
+                print(path, fileHash)
+                #self.move(self.sourceFolderPath, element)
+                valid += 1
+                try:1
                 except: 
                     print("Error 1 with file", path)
                     invalid += 1
