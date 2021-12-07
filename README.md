@@ -1,0 +1,2 @@
+# Duplinder
+Duplicate finder
