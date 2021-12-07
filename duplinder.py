@@ -1,4 +1,4 @@
-import sys, os, json
+import sys, os
 from core import *
 import hashlib
 
@@ -7,6 +7,7 @@ class program():
     def __init__(self,args):
         self.core = core(args)
         self.setup(args)#process the arguments
+        self.hashes = []
 
     def setup(self,args):
         #Help
@@ -35,6 +36,21 @@ class program():
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
         return hash_md5.hexdigest()
+    
+    def process(self, path):
+        #try:
+        
+        fileHash = self.md5(path)
+        if fileHash in self.hashes:#File already exist
+            print("DUPLICATE", path)
+        else:
+            self.hashes.append(fileHash)
+            print("NO DUPLI", path)
+        #self.move(self.sourceFolderPath, element)
+        
+        #except: 
+        #    print("Error 1 with file", path)
+    
 
     def run(self):
         valid=0
@@ -45,26 +61,12 @@ class program():
             path=os.path.join(self.sourceFolderPath,element)
             
             if os.path.isfile(path): #is a file
-                #try: #move it
-                fileHash = self.md5(path)
-                print(path, fileHash)
-                #self.move(self.sourceFolderPath, element)
-                valid += 1
-                try:1
-                except: 
-                    print("Error 1 with file", path)
-                    invalid += 1
+                process(path)
             else:#if folder
                 for root, dirs, files in os.walk(path):
                     if not root.endswith("_DUPLICATES"):
                         for filename in files:
-                            try: #move it
-                                print(root + "/" + filename)
-                                #self.move(self.sourceFolderPath, element)
-                                valid += 1
-                            except: 
-                                print("Error 2 with file", root + "/" + filename)
-                                invalid += 1                        
+                            process(root + "/" + filename)      
 
         print("{} file.s moved ({} error.s)".format(valid,invalid))
         if invalid !=0 : print("There was an error, please retry the same command")
