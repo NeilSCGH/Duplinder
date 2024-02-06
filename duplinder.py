@@ -8,6 +8,7 @@ class program():
         self.core = core(args)
         self.setup(args)#process the arguments
         self.hashes = []
+        self.hashesAndFiles = []
 
     def setup(self,args):
         #Help
@@ -27,7 +28,10 @@ class program():
           self.destinationFolderPath = val.replace("\\","/")
         else:
           self.destinationFolderPath = self.sourceFolderPath + "/_DUPLICATES"
-        os.makedirs(self.destinationFolderPath, 0o777, exist_ok = True)
+          
+          
+        #findOnly : Will only find duplicates, and not move them
+        self.findOnly = self.core.argExist("-findOnly")
 
     def md5(self, fname):
         fname = fname.replace("\\","/")
@@ -37,65 +41,73 @@ class program():
                 hash_md5.update(chunk)
         return hash_md5.hexdigest()
     
-    def process(self, path):
+    def process(self, rootPath, file):
         #try:
+        filePath = rootPath + "/" + file
+        fileHash = self.md5(filePath)
+        self.hashesAndFiles.append([filePath, fileHash])     
         
-        fileHash = self.md5(path)
+        #print()
         if fileHash in self.hashes:#File already exist
-            print("DUPLICATE", path)
+            #print("DUPLICATE", filePath)
+            #print(self.getFilesSameHash(fileHash))
+            self.getFilesSameHash(fileHash)
+            if not self.findOnly:
+                self.move(rootPath, file)
         else:
             self.hashes.append(fileHash)
-            print("NO DUPLI", path)
-        #self.move(self.sourceFolderPath, element)
+            if not self.findOnly:
+                1#print("NO DUPLIC", filePath)
         
         #except: 
         #    print("Error 1 with file", path)
     
+    def getFilesSameHash(self, hash):
+        files = []
+        for f, h in self.hashesAndFiles:
+            if hash == h:
+                files.append(f)
+                #print("     {}  {}".format(h,f))
+        
+        return files
+    
+    def printAllGroups(self):
+        for hash in self.hashes:
+            for file in self.getFilesSameHash(hash):
+                print(file)
+            
+            print("")
+            print("")
 
     def run(self):
-        valid=0
-        invalid=0
-
         print("Working...")
         for element in os.listdir(self.sourceFolderPath):
-            path=os.path.join(self.sourceFolderPath,element)
+            path=os.path.join(self.sourceFolderPath, element)
             
             if os.path.isfile(path): #is a file
-                process(path)
+                self.process(self.sourceFolderPath, element)
             else:#if folder
                 for root, dirs, files in os.walk(path):
                     if not root.endswith("_DUPLICATES"):
                         for filename in files:
-                            process(root + "/" + filename)      
+                            self.process(root, filename)    
 
-        print("{} file.s moved ({} error.s)".format(valid,invalid))
-        if invalid !=0 : print("There was an error, please retry the same command")
-
-    def move(self,rootPath,file):#TO DO
+        print("Done")
         
+        self.printAllGroups()
+        
+
+    def move(self, rootPath, file):
         sourcePath = rootPath + "/" + file
         destinationPath = self.destinationFolderPath
 
-        if self.validDate(year,month,day):
-            if self.printFileNames: print("OK", file)
-
-            if self.flat:
-                destinationPath += "/" + year + "-" + month + "-" + day + "/"
-            else:
-                destinationPath += "/" + year + "/" + month + "/"
-                if self.day: destinationPath += day + "/"
-
-        else:#invalid filename
-            if self.printFileNames: print("NO",file)
-            destinationPath += "/invalid/"
-
         os.makedirs(destinationPath, 0o777, exist_ok = True)
 
-        destinationFilePath = destinationPath + file
+        destinationFilePath = destinationPath + "/" + file
 
         try: os.rename(sourcePath, destinationFilePath) #we move the file
         except: 
-        	print("Error with file",sourcePath) #cannot move file, or file already exists
+        	print("Error with file", sourcePath) #cannot move file, or file already exists
         	assert False
             
     def stop(self, msg = ""):
@@ -105,10 +117,11 @@ class program():
 
     def help(self):
         print("")
-        print("Usage: python duplinder.py -f folder [-d destFolder]")
+        print("Usage: python duplinder.py -f folder [-findOnly] [-d destFolder]")
         print("")
         print("Options:")
         print("    -f path         Path to analyse")
+        print("    -findOnly       Don't move files, only show duplicates in the console.")
         print("    -d path         Path of the destination folder, where to put duplicates")
         print("                    (Optional, by default it's a subfolder of the source folder)")
         print("")
